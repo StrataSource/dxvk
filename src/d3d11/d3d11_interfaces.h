@@ -116,6 +116,32 @@ ID3D11VkExtDevice1 : public ID3D11VkExtDevice {
           uint32_t*               pCudaTextureHandle) = 0;
 };
 
+/**
+ * \brief Extended extended D3D11 device
+ * 
+ * Provides functionality to create D3D11 shaders using SPIR-V
+ */
+MIDL_INTERFACE("6463b14a-a2b7-4413-a171-b412bafc92e8")
+ID3D11VkExtDevice2 : public ID3D11VkExtDevice1 {
+
+  virtual HRESULT STDMETHODCALLTYPE CreateVertexShaderSPIRV(
+          const void*                 pShaderBytecode,
+          SIZE_T                      BytecodeLength,
+          ID3D11VertexShader**        ppVertexShader) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE CreatePixelShaderSPIRV(
+          const void*                 pShaderBytecode,
+          SIZE_T                      BytecodeLength,
+          ID3D11PixelShader**         ppPixelShader) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE CreateInputLayoutSPIRV(
+          const D3D11_INPUT_ELEMENT_DESC* pInputElementDescs,
+          UINT                        NumElements,
+          const void*                 pShaderBytecodeWithInputSignature,
+          SIZE_T                      BytecodeLength,
+          ID3D11InputLayout**         ppInputLayout) = 0;
+};
+
 
 /**
  * \brief Extended D3D11 context
@@ -248,6 +274,7 @@ ID3DLowLatencyDevice : public IUnknown {
 __CRT_UUID_DECL(ID3D11VkExtShader,         0xbb8a4fb9,0x3935,0x4762,0xb4,0x4b,0x35,0x18,0x9a,0x26,0x41,0x4a);
 __CRT_UUID_DECL(ID3D11VkExtDevice,         0x8a6e3c42,0xf74c,0x45b7,0x82,0x65,0xa2,0x31,0xb6,0x77,0xca,0x17);
 __CRT_UUID_DECL(ID3D11VkExtDevice1,        0xcfcf64ef,0x9586,0x46d0,0xbc,0xa4,0x97,0xcf,0x2c,0xa6,0x1b,0x06);
+__CRT_UUID_DECL(ID3D11VkExtDevice2,        0x6463b14a,0xa2b7,0x4413,0xa1,0x71,0xb4,0x12,0xba,0xfc,0x92,0xe8);
 __CRT_UUID_DECL(ID3D11VkExtContext,        0xfd0bca13,0x5cb6,0x4c3a,0x98,0x7e,0x47,0x50,0xde,0x2c,0xa7,0x91);
 __CRT_UUID_DECL(ID3D11VkExtContext1,       0x874b09b2,0xae0b,0x41d8,0x84,0x76,0x5f,0x3b,0x7a,0x0e,0x87,0x9d);
 __CRT_UUID_DECL(ID3DLowLatencyDevice,      0xf3112584,0x41f9,0x348d,0xa5,0x9b,0x00,0xb7,0xe1,0xd2,0x85,0xd6);

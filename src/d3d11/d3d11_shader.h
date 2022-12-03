@@ -57,6 +57,14 @@ namespace dxvk {
       return m_bindings;
     }
 
+    void forceOverrideShader(Rc<DxvkShader>&& shader) {
+      m_shader = std::move(shader);
+    }
+
+    void forceOverrideBindingMask(DxbcBindingMask &&mask) {
+      m_bindings = std::move(mask);
+    }
+
   private:
 
     Rc<DxvkShader> m_shader;

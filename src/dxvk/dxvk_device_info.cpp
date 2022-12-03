@@ -56,7 +56,9 @@ namespace dxvk {
     HANDLE_EXT(nvLowLatency2);                     \
     HANDLE_EXT(nvRawAccessChains);                 \
     HANDLE_EXT(nvxBinaryImport);                   \
-    HANDLE_EXT(nvxImageViewHandle);
+    HANDLE_EXT(nvxImageViewHandle);                \
+    HANDLE_EXT(googleHlslFunctionality);           \
+    HANDLE_EXT(googleUserType);
 
   #define EXTENSIONS_WITH_PROPERTIES               \
     HANDLE_EXT(extConservativeRasterization);      \
@@ -902,6 +904,10 @@ namespace dxvk {
       /* CUDA interop extensions */
       ENABLE_EXT(nvxBinaryImport, false),
       ENABLE_EXT(nvxImageViewHandle, false),
+
+      /* SPIRV extensions */
+      ENABLE_EXT(googleHlslFunctionality, false),
+      ENABLE_EXT(googleUserType, false),
     }};
 
     #undef ENABLE_FEATURE
