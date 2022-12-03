@@ -335,6 +335,8 @@ namespace dxvk {
     DxvkExt nvRawAccessChains                 = { VK_NV_RAW_ACCESS_CHAINS_EXTENSION_NAME,                   DxvkExtMode::Optional };
     DxvkExt nvxBinaryImport                   = { VK_NVX_BINARY_IMPORT_EXTENSION_NAME,                      DxvkExtMode::Disabled };
     DxvkExt nvxImageViewHandle                = { VK_NVX_IMAGE_VIEW_HANDLE_EXTENSION_NAME,                  DxvkExtMode::Disabled };
+    DxvkExt googleHlslFunctionality           = { VK_GOOGLE_HLSL_FUNCTIONALITY1_EXTENSION_NAME,             DxvkExtMode::Optional };
+    DxvkExt googleUserType                    = { VK_GOOGLE_USER_TYPE_EXTENSION_NAME,                       DxvkExtMode::Optional };
   };
   
   /**

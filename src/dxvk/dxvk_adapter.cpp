@@ -1091,6 +1091,8 @@ namespace dxvk {
       &devExtensions.nvRawAccessChains,
       &devExtensions.nvxBinaryImport,
       &devExtensions.nvxImageViewHandle,
+      &devExtensions.googleHlslFunctionality,
+      &devExtensions.googleUserType
     }};
   }
 
