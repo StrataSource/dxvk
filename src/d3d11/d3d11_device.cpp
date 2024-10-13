@@ -2807,7 +2807,7 @@ namespace dxvk {
   }
 
 
-  template <VkShaderStageFlagBits stage, typename ShaderType, typename ShaderInterfacePointerType>
+  template <DxbcProgramType type, typename ShaderType, typename ShaderInterfacePointerType>
   HRESULT D3D11DeviceExt::CreateShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ShaderInterfacePointerType* ppShader) {
     InitReturnPtr(ppShader);
     if (!ppShader)
@@ -2824,12 +2824,15 @@ namespace dxvk {
     res = mod.EnumerateInterfaceVariables(&variableCount, nullptr);
     if (res != SPV_REFLECT_RESULT_SUCCESS)
       return E_FAIL;
+
+    VkShaderStageFlagBits stage = DxbcProgramInfo(type).shaderStage();
     std::vector<SpvReflectDescriptorBinding*> bindings{bindingCount};
     std::vector<SpvReflectInterfaceVariable*> variables{variableCount};
     mod.EnumerateDescriptorBindings(&bindingCount, bindings.data());
     mod.EnumerateInterfaceVariables(&variableCount, variables.data());
     std::vector<DxvkBindingInfo> bindingInfos;
     bindingInfos.reserve(bindingCount);
+    DxbcBindingMask bindMask = {};
 
     for (auto binding : bindings) {
       if (binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE || binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -2840,7 +2843,7 @@ namespace dxvk {
                 .viewType = VkImageViewType(binding->type_description->traits.image.dim),
                 .stage = stage,
                 .access = VkAccessFlags(VK_ACCESS_SHADER_READ_BIT),
-                .uboSet = VK_FALSE,
+                .uboSet = false,
         };
         bindingInfos.emplace_back(bindingInfo);
       }
@@ -2852,9 +2855,33 @@ namespace dxvk {
                 .viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM,
                 .stage = stage,
                 .access = VkAccessFlags(VK_ACCESS_UNIFORM_READ_BIT),
-                .uboSet = VK_TRUE
+                .uboSet = true
         };
         bindingInfos.emplace_back(bindingInfo);
+      }
+
+      if (binding->resource_type & SPV_REFLECT_RESOURCE_FLAG_SAMPLER) {
+        uint32_t id = binding->binding - computeSamplerBinding(type, 0);
+        if (id < DxbcSamplerBindingCount)
+          bindMask.samplerMask |= 1 << id;
+      }
+
+      if (binding->resource_type & SPV_REFLECT_RESOURCE_FLAG_CBV) {
+        uint32_t id = binding->binding - computeConstantBufferBinding(type, 0);
+        if (id < DxbcConstBufBindingCount)
+          bindMask.cbvMask |= 1 << id;
+      }
+
+      if (binding->resource_type & SPV_REFLECT_RESOURCE_FLAG_SRV) {
+        uint32_t id = binding->binding - computeSrvBinding(type, 0);
+        if (id < DxbcResourceBindingCount)
+          bindMask.srvMask[id / 64u] |= uint64_t(1) << (id % 64u);
+      }
+
+      if (binding->resource_type & SPV_REFLECT_RESOURCE_FLAG_UAV) {
+        uint32_t id = binding->binding - computeUavBinding(type, 0);
+        if (id < DxbcUavBindingCount)
+          bindMask.uavMask |= uint64_t(1) << id;
       }
     }
 
@@ -2887,34 +2914,35 @@ namespace dxvk {
     shader->setShaderKey(DxvkShaderKey(stage, hash));
 
     D3D11CommonShader module;
-    module.forceOverrideShader(shader);
+    module.forceOverrideShader(std::move(shader));
+    module.forceOverrideBindingMask(std::move(bindMask));
     m_device->GetDXVKDevice()->registerShader(module.GetShader());
     *ppShader = ref(new ShaderType{m_device, module});
     return S_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateVertexShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11VertexShader** ppVertexShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_VERTEX_BIT, D3D11VertexShader>(pShaderBytecode, BytecodeLength, ppVertexShader);
+    return CreateShaderSPIRV<DxbcProgramType::VertexShader, D3D11VertexShader>(pShaderBytecode, BytecodeLength, ppVertexShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreatePixelShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11PixelShader** ppPixelShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_FRAGMENT_BIT, D3D11PixelShader>(pShaderBytecode, BytecodeLength, ppPixelShader);
+    return CreateShaderSPIRV<DxbcProgramType::PixelShader, D3D11PixelShader>(pShaderBytecode, BytecodeLength, ppPixelShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateGeometryShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11GeometryShader** ppGeometryShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_GEOMETRY_BIT, D3D11GeometryShader>(pShaderBytecode, BytecodeLength, ppGeometryShader);
+    return CreateShaderSPIRV<DxbcProgramType::GeometryShader, D3D11GeometryShader>(pShaderBytecode, BytecodeLength, ppGeometryShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateDomainShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11DomainShader** ppDomainShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, D3D11DomainShader>(pShaderBytecode, BytecodeLength, ppDomainShader);
+    return CreateShaderSPIRV<DxbcProgramType::DomainShader, D3D11DomainShader>(pShaderBytecode, BytecodeLength, ppDomainShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateHullShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11HullShader** ppHullShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, D3D11HullShader>(pShaderBytecode, BytecodeLength, ppHullShader);
+    return CreateShaderSPIRV<DxbcProgramType::HullShader, D3D11HullShader>(pShaderBytecode, BytecodeLength, ppHullShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateComputeShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ComputeShader** ppComputeShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_COMPUTE_BIT, D3D11ComputeShader>(pShaderBytecode, BytecodeLength, ppComputeShader);
+    return CreateShaderSPIRV<DxbcProgramType::ComputeShader, D3D11ComputeShader>(pShaderBytecode, BytecodeLength, ppComputeShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateInputLayoutSPIRV(
@@ -2940,23 +2968,13 @@ namespace dxvk {
       std::vector<SpvReflectInterfaceVariable*> variables(variableCount);
       mod.EnumerateInputVariables(&variableCount, variables.data());
 
-      auto compareSemanticNames = [](const std::string& a, const std::string& b) {
-          if (a.size() != b.size())
-            return false;
-          for (size_t i = 0; i < a.size(); i++) {
-            if (std::toupper(a[i]) != std::toupper(b[i]))
-              return false;
-          }
-          return true;
-      };
-
-      auto findEntry = [&variables, compareSemanticNames](const std::string& name, UINT idx) -> uint64_t {
-          const auto fullName = str::format(name, idx);
-          for (auto var : variables) {
+      auto findEntry = [&variables](const std::string& name, UINT idx) -> uint64_t {
+          const std::string fullName = str::format(name, idx);
+          for (SpvReflectInterfaceVariable *var : variables) {
             if (unlikely(!var->semantic))
               continue;
             std::string semantic = var->semantic;
-            if (compareSemanticNames(semantic, fullName) || (idx == 0 && compareSemanticNames(semantic, name)))
+            if (DxbcIsgn::compareSemanticNames(semantic, fullName) || (idx == 0 && DxbcIsgn::compareSemanticNames(semantic, name)))
               return var->location;
           }
           return UINT64_MAX;
@@ -2964,12 +2982,13 @@ namespace dxvk {
 
       uint32_t attrMask = 0;
       uint32_t bindMask = 0;
+      uint32_t bindingsDefined = 0;
 
       std::array<DxvkVertexAttribute, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> attrList{};
       std::array<DxvkVertexBinding,   D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT> bindList{};
 
       for (uint32_t i = 0; i < NumElements; i++) {
-        auto registerId = findEntry(
+        uint64_t registerId = findEntry(
                 pInputElementDescs[i].SemanticName,
                 pInputElementDescs[i].SemanticIndex);
 
@@ -2981,7 +3000,7 @@ namespace dxvk {
         }
 
         // Create vertex input attribute description
-        DxvkVertexAttribute attrib;
+        DxvkVertexAttribute attrib = { };
         attrib.location = registerId == UINT64_MAX ? 0 : uint32_t(registerId);
         attrib.binding  = pInputElementDescs[i].InputSlot;
         attrib.format   = m_device->LookupFormat(pInputElementDescs[i].Format, DXGI_VK_FORMAT_MODE_COLOR).Format;
@@ -3005,41 +3024,34 @@ namespace dxvk {
               break;
             }
           }
-        } else if (attrib.offset & (alignment - 1))
+        } else if (attrib.offset & (alignment - 1)) {
           return E_INVALIDARG;
+        }
 
         attrList.at(i) = attrib;
 
         // Create vertex input binding description. The
         // stride is dynamic state in D3D11 and will be
         // set by D3D11DeviceContext::IASetVertexBuffers.
-        DxvkVertexBinding binding;
+        DxvkVertexBinding binding = {};
         binding.binding   = pInputElementDescs[i].InputSlot;
-        binding.fetchRate = pInputElementDescs[i].InstanceDataStepRate;
+        binding.divisor = pInputElementDescs[i].InstanceDataStepRate;
         binding.inputRate = pInputElementDescs[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA
                             ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX;
+        binding.extent    = registerId != UINT64_MAX ? uint32_t(attrib.offset + formatInfo->elementSize) : 0u;
 
         // Check if the binding was already defined. If so, the
         // parameters must be identical (namely, the input rate).
-        bool bindingDefined = false;
+        if (bindingsDefined & (1u << binding.binding)) {
+          if (bindList.at(binding.binding).inputRate != binding.inputRate)
+            return E_INVALIDARG;
 
-        for (uint32_t j = 0; j < i; j++) {
-          uint32_t bindingId = attrList.at(j).binding;
-
-          if (binding.binding == bindingId) {
-            bindingDefined = true;
-
-            if (binding.inputRate != bindList.at(bindingId).inputRate) {
-              Logger::err(str::format(
-                      "D3D11Device: Conflicting input rate for binding ",
-                      binding.binding));
-              return E_INVALIDARG;
-            }
-          }
-        }
-
-        if (!bindingDefined)
+          bindList.at(binding.binding).extent = std::max(
+            bindList.at(binding.binding).extent, binding.extent);
+        } else {
           bindList.at(binding.binding) = binding;
+          bindingsDefined |= 1u << binding.binding;
+        }
 
         if (registerId != UINT64_MAX) {
           attrMask |= 1u << i;
