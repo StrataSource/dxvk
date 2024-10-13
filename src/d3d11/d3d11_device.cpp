@@ -2806,8 +2806,9 @@ namespace dxvk {
     return true;
   }
 
-  template<VkShaderStageFlagBits stage, typename T_ShaderType, typename T_ShaderInterfacePointerType>
-  HRESULT CreateShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, T_ShaderInterfacePointerType* ppShader, D3D11Device* device) {
+
+  template <VkShaderStageFlagBits stage, typename ShaderType, typename ShaderInterfacePointerType>
+  HRESULT D3D11DeviceExt::CreateShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ShaderInterfacePointerType* ppShader) {
     InitReturnPtr(ppShader);
     if (!ppShader)
       return S_FALSE;
@@ -2887,21 +2888,33 @@ namespace dxvk {
 
     D3D11CommonShader module;
     module.forceOverrideShader(shader);
-    device->GetDXVKDevice()->registerShader(module.GetShader());
-    *ppShader = ref(new T_ShaderType{device, module});
+    m_device->GetDXVKDevice()->registerShader(module.GetShader());
+    *ppShader = ref(new ShaderType{m_device, module});
     return S_OK;
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateVertexShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11VertexShader** ppVertexShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_VERTEX_BIT, D3D11VertexShader>(pShaderBytecode, BytecodeLength, ppVertexShader, m_device);
+    return CreateShaderSPIRV<VK_SHADER_STAGE_VERTEX_BIT, D3D11VertexShader>(pShaderBytecode, BytecodeLength, ppVertexShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreatePixelShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11PixelShader** ppPixelShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_FRAGMENT_BIT, D3D11PixelShader>(pShaderBytecode, BytecodeLength, ppPixelShader, m_device);
+    return CreateShaderSPIRV<VK_SHADER_STAGE_FRAGMENT_BIT, D3D11PixelShader>(pShaderBytecode, BytecodeLength, ppPixelShader);
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateGeometryShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11GeometryShader** ppGeometryShader) {
+    return CreateShaderSPIRV<VK_SHADER_STAGE_GEOMETRY_BIT, D3D11GeometryShader>(pShaderBytecode, BytecodeLength, ppGeometryShader);
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateDomainShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11DomainShader** ppDomainShader) {
+    return CreateShaderSPIRV<VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, D3D11DomainShader>(pShaderBytecode, BytecodeLength, ppDomainShader);
+  }
+
+  HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateHullShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11HullShader** ppHullShader) {
+    return CreateShaderSPIRV<VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT, D3D11HullShader>(pShaderBytecode, BytecodeLength, ppHullShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateComputeShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D11ComputeShader** ppComputeShader) {
-    return CreateShaderSPIRV<VK_SHADER_STAGE_COMPUTE_BIT, D3D11ComputeShader>(pShaderBytecode, BytecodeLength, ppComputeShader, m_device);
+    return CreateShaderSPIRV<VK_SHADER_STAGE_COMPUTE_BIT, D3D11ComputeShader>(pShaderBytecode, BytecodeLength, ppComputeShader);
   }
 
   HRESULT STDMETHODCALLTYPE D3D11DeviceExt::CreateInputLayoutSPIRV(

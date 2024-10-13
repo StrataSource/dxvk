@@ -134,6 +134,21 @@ ID3D11VkExtDevice2 : public ID3D11VkExtDevice1 {
           SIZE_T                      BytecodeLength,
           ID3D11PixelShader**         ppPixelShader) = 0;
 
+  virtual HRESULT STDMETHODCALLTYPE CreateGeometryShaderSPIRV(
+          const void*                 pShaderBytecode,
+          SIZE_T                      BytecodeLength,
+          ID3D11GeometryShader**      ppGeometryShader) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE CreateDomainShaderSPIRV(
+          const void*                 pShaderBytecode,
+          SIZE_T                      BytecodeLength,
+          ID3D11DomainShader**        ppDomainShader) = 0;
+
+  virtual HRESULT STDMETHODCALLTYPE CreateHullShaderSPIRV(
+          const void*                 pShaderBytecode,
+          SIZE_T                      BytecodeLength,
+          ID3D11HullShader**          ppHullShader) = 0;
+
   virtual HRESULT STDMETHODCALLTYPE CreateComputeShaderSPIRV(
           const void*                 pShaderBytecode,
           SIZE_T                      BytecodeLength,
