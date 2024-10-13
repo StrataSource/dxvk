@@ -33,6 +33,8 @@ namespace dxvk::wsi {
         // for other platforms however we _need_ to know which WSI to use!
 #if defined(DXVK_WSI_WIN32)
         hint = "Win32";
+#elif defined(DXVK_WSI_SDL3)
+		hint = "SDL3";
 #else
         throw DxvkError("DXVK_WSI_DRIVER environment variable unset");
 #endif
