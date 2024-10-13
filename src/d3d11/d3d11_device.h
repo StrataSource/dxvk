@@ -681,7 +681,7 @@ namespace dxvk {
     void LockBuffer(
       const Rc<DxvkBuffer>&           Buffer);
 
-    template <VkShaderStageFlagBits stage, typename ShaderType, typename ShaderInterfacePointerType>
+    template <DxbcProgramType type, typename ShaderType, typename ShaderInterfacePointerType>
     HRESULT CreateShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ShaderInterfacePointerType* ppShader);
 
     dxvk::mutex m_mapLock;
