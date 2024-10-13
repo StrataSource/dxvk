@@ -617,7 +617,7 @@ namespace dxvk {
             const D3D11_SAMPLER_DESC* pSamplerDesc,
             ID3D11SamplerState**      ppSamplerState,
             uint32_t*                 pDriverHandle);
-     
+
      HRESULT STDMETHODCALLTYPE CreateVertexShaderSPIRV(
             const void*             pShaderBytecode,
             SIZE_T                  BytecodeLength,
@@ -627,6 +627,21 @@ namespace dxvk {
             const void*             pShaderBytecode,
             SIZE_T                  BytecodeLength,
             ID3D11PixelShader**     ppPixelShader);
+
+     HRESULT STDMETHODCALLTYPE CreateGeometryShaderSPIRV(
+            const void*             pShaderBytecode,
+            SIZE_T                  BytecodeLength,
+            ID3D11GeometryShader**  ppGeometryShader);
+
+     HRESULT STDMETHODCALLTYPE CreateDomainShaderSPIRV(
+            const void*             pShaderBytecode,
+            SIZE_T                  BytecodeLength,
+            ID3D11DomainShader**    ppDomainShader);
+
+     HRESULT STDMETHODCALLTYPE CreateHullShaderSPIRV(
+            const void*             pShaderBytecode,
+            SIZE_T                  BytecodeLength,
+            ID3D11HullShader**      ppHullShader);
 
      HRESULT STDMETHODCALLTYPE CreateComputeShaderSPIRV(
             const void*             pShaderBytecode,
@@ -665,6 +680,9 @@ namespace dxvk {
 
     void LockBuffer(
       const Rc<DxvkBuffer>&           Buffer);
+
+    template <VkShaderStageFlagBits stage, typename ShaderType, typename ShaderInterfacePointerType>
+    HRESULT CreateShaderSPIRV(const void* pShaderBytecode, SIZE_T BytecodeLength, ShaderInterfacePointerType* ppShader);
 
     dxvk::mutex m_mapLock;
     std::unordered_map<uint32_t, ID3D11SamplerState*> m_samplerHandleToPtr;
