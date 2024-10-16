@@ -252,6 +252,8 @@ namespace dxvk {
      */
     DxvkNameList toNameList() const;
 
+    bool empty() const { return m_names.empty(); }
+
     /**
      * \brief Enumerates instance layers
      * 
