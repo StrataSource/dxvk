@@ -231,6 +231,11 @@ namespace dxvk {
       for (const auto& ext : extensionsEnabled)
         extensionNames.push_back(ext.extensionName);
 
+      auto env = env::getEnvVar("DXVK_INSTANCE_EXTENSIONS");
+      for (auto* s = strtok(env.data(), ":"); s; s = strtok(nullptr, ":")) {
+        extensionNames.push_back(s);
+      }
+
       VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
       appInfo.pApplicationName      = appName.c_str();
       appInfo.applicationVersion    = flags.raw();

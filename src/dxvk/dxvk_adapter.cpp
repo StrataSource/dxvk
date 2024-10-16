@@ -187,6 +187,10 @@ namespace dxvk {
     for (const auto& ext : extensions)
       extensionNames.push_back(ext.extensionName);
 
+    auto env = env::getEnvVar("DXVK_DEVICE_EXTENSIONS");
+    for (auto* s = strtok(env.data(), ":"); s; s = strtok(nullptr, ":"))
+      extensionNames.push_back(s);
+
     // Query queue infos
     DxvkDeviceQueueMapping queueMapping = m_capabilities.getQueueMapping();
 
