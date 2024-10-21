@@ -1,5 +1,6 @@
 #include "dxvk_instance.h"
 #include "dxvk_openvr.h"
+#include "../util/util_win32_compat.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -55,6 +56,7 @@ namespace dxvk {
     if (m_no_vr || m_initializedDevExt)
         return;
 
+  #ifdef _WIN32
     if (!m_vr_key)
     {
         LSTATUS status;
@@ -62,6 +64,7 @@ namespace dxvk {
         if ((status = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Wine\\VR", 0, KEY_READ, &m_vr_key)))
             Logger::info(str::format("OpenVR: could not open registry key, status ", status));
     }
+  #endif
 
     if (!m_vr_key && !m_compositor)
       m_compositor = this->getCompositor();
@@ -90,6 +93,7 @@ namespace dxvk {
   }
 
   bool VrInstance::waitVrKeyReady() const {
+  #ifdef _WIN32
     DWORD type, value, wait_status, size;
     LSTATUS status;
     HANDLE event;
@@ -138,12 +142,16 @@ namespace dxvk {
   done:
     CloseHandle(event);
     return value == 1;
+  #else
+    return 0;
+  #endif
   }
 
   DxvkNameSet VrInstance::queryInstanceExtensions() const {
     std::vector<char> extensionList;
     DWORD len;
 
+  #ifdef _WIN32
     if (m_vr_key)
     {
         LSTATUS status;
@@ -166,6 +174,7 @@ namespace dxvk {
         }
     }
     else
+  #endif
     {
         len = m_compositor->GetVulkanInstanceExtensionsRequired(nullptr, 0);
         extensionList.resize(len);
@@ -179,6 +188,7 @@ namespace dxvk {
     std::vector<char> extensionList;
     DWORD len;
 
+  #ifdef _WIN32
     if (m_vr_key)
     {
         LSTATUS status;
@@ -203,6 +213,7 @@ namespace dxvk {
         }
     }
     else
+  #endif
     {
         len = m_compositor->GetVulkanDeviceExtensionsRequired(adapter->handle(), nullptr, 0);
         extensionList.resize(len);
@@ -287,11 +298,13 @@ namespace dxvk {
 
 
   void VrInstance::shutdown() {
+  #ifdef _WIN32
     if (m_vr_key)
     {
         RegCloseKey(m_vr_key);
         m_vr_key = nullptr;
     }
+  #endif
 
     if (m_initializedOpenVr)
       g_vrFunctions.shutdownInternal();
@@ -307,11 +320,20 @@ namespace dxvk {
   HMODULE VrInstance::loadLibrary() {
     HMODULE handle;
 
+  #ifdef _WIN32
     // Use openvr_api.dll only if already loaded in the process (and reference it which GetModuleHandleEx does without
     // GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT flag).
     if (!::GetModuleHandleEx(0, "openvr_api.dll", &handle))
       handle = ::LoadLibrary("openvr_api_dxvk.dll");
-
+  #elif defined(__linux__)
+    const char* libs[] = {"libopenvr_api.so", "openvr_api.so", "libopenvr.so", "openvr.so"};
+    for(auto& l : libs) {
+      if ((handle = LoadLibraryA(l)) != nullptr) {
+        Logger::info(str::format("Loaded OpenVR library ", l));
+        break;
+      }
+    }
+  #endif
     m_loadedOvrApi = handle != nullptr;
     return handle;
   }

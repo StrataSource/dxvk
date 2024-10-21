@@ -39,8 +39,8 @@ namespace dxvk {
 
     // Initialize extension providers
     m_extProviders.push_back(&DxvkPlatformExts::s_instance);
-#ifdef _WIN32
     m_extProviders.push_back(&VrInstance::s_instance);
+#ifdef _WIN32
     m_extProviders.push_back(&DxvkXrProvider::s_instance);
 #endif
 
