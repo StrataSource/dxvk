@@ -123,11 +123,12 @@ dxvk_src = [
   'hud/dxvk_hud_font.cpp',
   'hud/dxvk_hud_item.cpp',
   'hud/dxvk_hud_renderer.cpp',
+
+  'dxvk_openvr.cpp',
 ]
 
 if platform == 'windows'
   dxvk_src += [
-    'dxvk_openvr.cpp',
     'dxvk_openxr.cpp',
   ]
 endif
