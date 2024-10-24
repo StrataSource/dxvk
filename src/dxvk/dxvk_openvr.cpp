@@ -24,7 +24,7 @@ namespace dxvk {
   VrInstance VrInstance::s_instance;
 
   VrInstance:: VrInstance() {
-    m_no_vr = env::getEnvVar("DXVK_NO_VR") == "1";
+    m_no_vr = env::getEnvVar("DXVK_VR") != "1";
   }
   VrInstance::~VrInstance() { }
 
