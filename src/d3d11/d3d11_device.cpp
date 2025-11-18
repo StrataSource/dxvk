@@ -25,11 +25,12 @@
 #include "d3d11_texture.h"
 #include "d3d11_video.h"
 
-#include "spirv_reflect.h"
-
 #include "../wsi/wsi_window.h"
 
 #include "../util/util_shared_res.h"
+
+#include "spirv_reflect.h"
+#include "opt/optimizer.hpp"
 
 namespace dxvk {
   
@@ -2728,7 +2729,7 @@ namespace dxvk {
     if (!ppShader)
       return S_FALSE;
 
-    spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecode);
+    spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecode, SPV_REFLECT_MODULE_FLAG_NO_COPY);
     if (mod.GetResult() != SPV_REFLECT_RESULT_SUCCESS)
       return E_FAIL;
 
@@ -2823,6 +2824,40 @@ namespace dxvk {
             .outputMask = outputMask
     };
 
+    std::vector<uint32_t> byteCode;
+    if (const auto& f = m_device->GetDXVKDevice()->features(); !f.googleHlslFunctionality || !f.googleUserType) {
+      spvtools::Optimizer opt(SPV_ENV_VULKAN_1_3);
+      opt.RegisterPass(spvtools::CreateStripNonSemanticInfoPass());
+      opt.SetMessageConsumer([](spv_message_level_t level, const char*, const spv_position_t&, const char* message) {
+        switch ( level ) {
+          case SPV_MSG_FATAL:
+          case SPV_MSG_INTERNAL_ERROR:
+          case SPV_MSG_ERROR:
+            Logger::err(message);
+            break;
+          case SPV_MSG_WARNING:
+            Logger::warn(message);
+            break;
+          case SPV_MSG_INFO:
+            Logger::info(message);
+            break;
+          case SPV_MSG_DEBUG:
+            Logger::debug(message);
+            break;
+        }
+      });
+      spvtools::OptimizerOptions o;
+      o.set_preserve_bindings(true);
+      o.set_preserve_spec_constants(true);
+      if (!opt.Run(reinterpret_cast<const uint32_t*>(pShaderBytecode), BytecodeLength / 4, &byteCode, o)) {
+        Logger::warn("Failed to strip non-semantic SPIR-V information from shader bytecode!");
+        return E_FAIL;
+      }
+
+      pShaderBytecode = byteCode.data();
+      BytecodeLength = byteCode.size() * 4;
+    }
+
     SpirvCodeBuffer buffer(BytecodeLength / 4, reinterpret_cast<const uint32_t*>(pShaderBytecode));
     auto shader = new DxvkShader(shaderCreateInfo, std::move(buffer));
 
@@ -2873,7 +2908,7 @@ namespace dxvk {
       return E_INVALIDARG;
 
     try {
-      spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecodeWithInputSignature);
+      spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecodeWithInputSignature, SPV_REFLECT_MODULE_FLAG_NO_COPY);
       if (mod.GetResult() != SPV_REFLECT_RESULT_SUCCESS)
         return E_FAIL;
 
