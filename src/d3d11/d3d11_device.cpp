@@ -2813,7 +2813,7 @@ namespace dxvk {
     if (!ppShader)
       return S_FALSE;
 
-    spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecode);
+    spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecode, SPV_REFLECT_MODULE_FLAG_NO_COPY);
     if (mod.GetResult() != SPV_REFLECT_RESULT_SUCCESS)
       return E_FAIL;
 
@@ -2838,24 +2838,26 @@ namespace dxvk {
       if (binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE || binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
       {
         auto bindingInfo = DxvkBindingInfo {
-                .descriptorType = VkDescriptorType(binding->descriptor_type),
-                .resourceBinding = binding->binding,
-                .viewType = VkImageViewType(binding->type_description->traits.image.dim),
-                .stage = stage,
-                .access = VkAccessFlags(VK_ACCESS_SHADER_READ_BIT),
-                .uboSet = false,
+          .descriptorType = VkDescriptorType(binding->descriptor_type),
+          .resourceBinding = binding->binding,
+          .viewType = VkImageViewType(binding->type_description->traits.image.dim),
+          .stage = stage,
+          .access = VkAccessFlags(VK_ACCESS_SHADER_READ_BIT),
+          .uboSet = false,
+          .isMultisampled = bool(binding->type_description->traits.image.ms)
         };
         bindingInfos.emplace_back(bindingInfo);
       }
       else
       {
+        auto isUav = !strncmp(binding->type_description->type_name, "rw", 2);
         auto bindingInfo = DxvkBindingInfo {
-                .descriptorType = VkDescriptorType(binding->descriptor_type),
-                .resourceBinding = binding->binding,
-                .viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM,
-                .stage = stage,
-                .access = VkAccessFlags(VK_ACCESS_UNIFORM_READ_BIT),
-                .uboSet = true
+          .descriptorType = VkDescriptorType(binding->descriptor_type),
+          .resourceBinding = binding->binding,
+          .viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM,
+          .stage = stage,
+          .access = VkAccessFlags(binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER ? VK_ACCESS_UNIFORM_READ_BIT : isUav ? VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT : VK_ACCESS_SHADER_READ_BIT),
+          .uboSet = binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER
         };
         bindingInfos.emplace_back(bindingInfo);
       }
@@ -2957,7 +2959,7 @@ namespace dxvk {
       return E_INVALIDARG;
 
     try {
-      spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecodeWithInputSignature);
+      spv_reflect::ShaderModule mod(BytecodeLength, pShaderBytecodeWithInputSignature, SPV_REFLECT_MODULE_FLAG_NO_COPY);
       if (mod.GetResult() != SPV_REFLECT_RESULT_SUCCESS)
         return E_FAIL;
 
