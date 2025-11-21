@@ -46,10 +46,8 @@ namespace dxvk {
     dxvk::mutex           m_mutex;
     HKEY                  m_vr_key     = nullptr;
     vr::IVRCompositor*    m_compositor = nullptr;
-    HMODULE               m_ovrApi     = nullptr;
 
     bool m_no_vr;
-    bool m_loadedOvrApi      = false;
     bool m_initializedOpenVr = false;
     bool m_initializedInsExt = false;
     bool m_initializedDevExt = false;
@@ -68,12 +66,6 @@ namespace dxvk {
     vr::IVRCompositor* getCompositor();
 
     void shutdown();
-
-    HMODULE loadLibrary();
-
-    void freeLibrary();
-
-    void* getSym(const char* sym);
 
     bool waitVrKeyReady() const;
   };

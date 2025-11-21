@@ -55,6 +55,13 @@ dep_displayinfo = dependency(
   default_options: ['default_library=static'],
 )
 
+dep_openvr = dependency(
+  'libopenvr',
+  version: '0.0.0',
+  fallback: ['libopenvr', 'ovr_dep'],
+  default_options: ['default_library=static']
+)
+
 if platform == 'windows'
   dxvk_so_version = {'name_prefix': ''}
 
